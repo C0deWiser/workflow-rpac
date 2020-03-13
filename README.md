@@ -34,12 +34,32 @@ class Controller
 }
 ```
 
+Also, this policy extends `getPermission` method.
+
+```php
+class PostPolicy {
+    public function getPermission($action, $role, $workflow = null, $state = null)
+    {
+        // On `new` state Author can do anything with his Post
+        if ($role == 'App\Post\Author' && $state && $state = 'new') {
+            return true;
+        }
+        // Admin can create and view any record, no matter the state
+        if ($role == 'Role\Admin' && (!$workflow || $action == 'view')) {
+            return true;
+        }
+        // Other rules will be provided by RPAC
+        return null;
+    }
+}
+```
+
 Package extends `WorkflowBlueprint` with default permissions to perform transitions.
 
 ```php
 class PostWorkflow extends WorkflowBlueprint
 {
-    public function getPermission($target, $role)
+    public function getPermission($source, $target, $role)
     {
         // Admin may perform any transitions
         if ($role == 'Role\Admin') {

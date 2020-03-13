@@ -2,6 +2,7 @@
 namespace Codewiser\Workflow\Rpac\Traits;
 
 use Codewiser\Workflow\Rpac\WorkflowBlueprint;
+use Illuminate\Support\Collection;
 
 /**
  * Trait extends Workflow with permissions (who allowed to perform transitions?)
@@ -10,7 +11,8 @@ use Codewiser\Workflow\Rpac\WorkflowBlueprint;
 trait Workflow
 {
     use \Codewiser\Workflow\Traits\Workflow {
-        \Codewiser\Workflow\Traits\Workflow::workflow as protected parentWorkflow;
+        workflow as private parentWorkflow;
+        getWorkflowListing as private getParentWorkflowListing;
     }
 
     /**
@@ -20,5 +22,14 @@ trait Workflow
     public function workflow($what = null)
     {
         return $this->parentWorkflow($what);
+    }
+
+    /**
+     * @inheritDoc
+     * @return WorkflowBlueprint[]|Collection
+     */
+    public function getWorkflowListing()
+    {
+        return $this->getParentWorkflowListing();
     }
 }

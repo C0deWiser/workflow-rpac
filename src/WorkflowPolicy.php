@@ -20,6 +20,49 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
         return $this->authorizeTransition($user, $model, $workflow, $target);
     }
 
+    /**
+     * Default (built-in) permissions
+     * @param string $action
+     * @param string $role
+     * @param string|null $workflow
+     * @param string|null $state
+     * @return bool|null return null, if there is no default rule
+     */
+    public function getPermission($action, $role, $workflow = null, $state = null)
+    {
+        return null;
+    }
+
+    /**
+     * Return Default (built-in) permissions for model+user
+     * @param string $action
+     * @param User|null $user
+     * @param Model|Workflow|null $model
+     * @return bool|null
+     */
+    protected function getPermissions($action, ?User $user, Model $model = null)
+    {
+        $default = null;
+        $roles = $this->getRoles($user, $model);
+
+        foreach ($roles as $role) {
+            if ($model) {
+                // Iterate each workflow
+                foreach ($model->getWorkflowListing() as $workflow) {
+                    if (!is_null($rule = $this->getPermission($action, $role, $workflow->getAttributeName(), $workflow->getState()))) {
+                        $default = $rule ?: ($default ?: $rule);
+                    }
+                }
+            } else {
+                if (!is_null($rule = $this->getPermission($action, $role))) {
+                    $default = $rule ?: ($default ?: $rule);
+                }
+            }
+        }
+
+        return $default;
+    }
+
     protected function applyScope($action, ?User $user)
     {
         // without workflow we construct Scope that way
@@ -27,9 +70,9 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
         // we get Relationships from those permissions
         // we apply Relationship Scopes, so Collection got models from those scopes
 
-        $workflowList = $this->getModelWorkflowList();
+        $workflowListing = $this->getWorkflowListing();
 
-        if (!$workflowList) {
+        if (!$workflowListing) {
             parent::applyScope($action, $user);
             return;
         }
@@ -59,9 +102,9 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
         $globalScopeName = "{$this->model()}\\{$action}";
         $keyName = (new $model())->getKeyName();
 
-        $model::addGlobalScope($globalScopeName, function (Builder $query) use ($workflowList, $action, $user, $keyName) {
+        $model::addGlobalScope($globalScopeName, function (Builder $query) use ($workflowListing, $action, $user, $keyName) {
             $scoped = false;
-            foreach ($workflowList as $workflow) {
+            foreach ($workflowListing as $workflow) {
                 foreach ($workflow->getStates() as $state) {
                     $signature = "{$this->getNamespace()}({$workflow->getAttributeName()}:{$state}):{$action}";
                     if ($this->getPermissions($signature, $this->getRoles($user))->count()) {
@@ -94,25 +137,22 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
 
     /**
      * Model's workflow
+     * @param Model|Workflow $model
      * @return \Illuminate\Support\Collection|WorkflowBlueprint[]
      */
-    protected function getModelWorkflowList(Model $model = null)
+    protected function getWorkflowListing(Model $model = null)
     {
-        $w = [];
         if (!$model) {
             $modelClass = $this->model();
+            /** @var Model|Workflow $model */
             $model = new $modelClass();
         }
 
-        if (method_exists($model, 'workflow')) {
-            /* @var Model $model */
-            foreach (array_keys($model->getAttributes()) as $attribute) {
-                if ($workflow = $model->workflow($attribute)) {
-                    $w[] = $workflow;
-                }
-            }
+        if (method_exists($model, 'getWorkflowListing')) {
+            return collect($model->getWorkflowListing());
         }
-        return new \Illuminate\Support\Collection($w);
+
+        return collect();
     }
 
     /**
@@ -129,7 +169,7 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
         // Model+Workflow+SourceState+TargetState
         // signature: Model(workflowName:state):transit(newState)
 
-        if (!$this->getModelWorkflowList()) {
+        if (!$this->getWorkflowListing()) {
             // Has no workflow
             return false;
         } elseif (!($workflow = $model->workflow($workflow))) {
@@ -142,7 +182,7 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
 
         foreach ($roles as $role) {
             if (!is_null($rule = $workflow->getPermission($target, $role))) {
-                $default = $rule ? : ($default ? : $rule);
+                $default = $rule ?: ($default ?: $rule);
             }
         }
 
@@ -168,10 +208,10 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
     protected function getSignature($action, Model $model = null)
     {
         $signatures = [];
-        if ($model && ($workflowList = $this->getModelWorkflowList($model))) {
+        if ($model && ($workflowListing = $this->getWorkflowListing($model))) {
             // It is enough for user to have access to model through any workflow
             // So, we return few signatures any of which gives access
-            foreach ($workflowList as $workflow) {
+            foreach ($workflowListing as $workflow) {
                 $signatures[] = "{$this->getNamespace()}({$workflow->getAttributeName()}:{$workflow->getState()}):{$action}";
             }
         } else {
@@ -184,9 +224,9 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
      * Return permissions for signatures and roles
      * @param array|string $signature
      * @param array|string $roles
-     * @return Collection|Permission[]|Collection
+     * @return Collection|Permission[]
      */
-    protected function getPermissions($signature, $roles)
+    protected function readPermissions($signature, $roles)
     {
         // Take permissions with signature and user role
         $permissions = Permission::cached()->filter(
