@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User;
-use Trunow\Rpac\Permission;
+use Codewiser\Rpac\Permission;
 
 /**
  * This policy may authorise user to perform Transitions. Also, it gives respect to models states.

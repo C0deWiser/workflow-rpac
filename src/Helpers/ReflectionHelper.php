@@ -5,7 +5,7 @@ use Codewiser\Workflow\Rpac\Traits\Workflow;
 use Codewiser\Workflow\Rpac\WorkflowPolicy;
 use Illuminate\Database\Eloquent\Model;
 
-class ReflectionHelper extends \Trunow\Rpac\Helpers\ReflectionHelper
+class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
 {
     /**
      * @param $policy
