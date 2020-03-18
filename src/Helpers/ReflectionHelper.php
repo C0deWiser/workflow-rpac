@@ -92,7 +92,7 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
     {
         /** @var WorkflowPolicy $policy */
         $policy = new $policy();
-        return $policy->getPermission($action, $role, $workflow, $state);
+        return in_array($role, $policy->getDefaults($action, $workflow, $state));
     }
 
     /**
@@ -109,7 +109,7 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
 
         if (method_exists($model, 'workflow')) {
             $workflow = $model->workflow($workflow);
-            return $workflow->getPermission($transition[0], $transition[1], $role);
+            return in_array($role, $workflow->getDefaults($transition[0], $transition[1]));
         } else {
             return null;
         }

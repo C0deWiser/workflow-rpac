@@ -38,18 +38,17 @@ Also, this policy extends `getPermission` method.
 
 ```php
 class PostPolicy {
-    public function getPermission($action, $role, $workflow = null, $state = null)
+    public function getPermission($action, $workflow = null, $state = null)
     {
         // On `new` state Author can do anything with his Post
-        if ($role == 'App\Post\Author' && $state && $state = 'new') {
-            return true;
+        if ($state = 'new') {
+            return 'App\Post\Author';
         }
         // Admin can create and view any record, no matter the state
-        if ($role == 'Role\Admin' && (!$workflow || $action == 'view')) {
-            return true;
+        if (!$workflow || $action == 'view') {
+            return 'Role\Admin';
         }
         // Other rules will be provided by RPAC
-        return null;
     }
 }
 ```
@@ -59,14 +58,11 @@ Package extends `WorkflowBlueprint` with default permissions to perform transiti
 ```php
 class PostWorkflow extends WorkflowBlueprint
 {
-    public function getPermission($source, $target, $role)
+    public function getPermission($source, $target)
     {
         // Admin may perform any transitions
-        if ($role == 'Role\Admin') {
-            return true;
-        }
+        return 'Role\Admin';
         // Other rules will be provided by RPAC
-        return null;
     }
 }
 ```

@@ -11,11 +11,10 @@ abstract class WorkflowBlueprint extends \Codewiser\Workflow\WorkflowBlueprint
      * Default (built-in) permissions to perform transitions
      * @param string $source
      * @param string $target
-     * @param string $role
-     * @return bool|null return null, if there is no default rule
+     * @return array|string[] return namespaced(!) roles, allowed to perform transition
      */
-    public function getPermission($source, $target, $role)
+    public function getDefaults($source, $target)
     {
-        return null;
+        return [];
     }
 }

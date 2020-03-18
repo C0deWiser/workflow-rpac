@@ -2,6 +2,7 @@
 
 namespace Codewiser\Workflow\Rpac;
 
+use Codewiser\Rpac\Policies\RpacPolicy;
 use Codewiser\Workflow\Rpac\Traits\Workflow;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -13,7 +14,7 @@ use Codewiser\Rpac\Permission;
  * This policy may authorise user to perform Transitions. Also, it gives respect to models states.
  * @package Codewiser\Workflow\Rpac
  */
-abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
+abstract class WorkflowPolicy extends RpacPolicy
 {
     public function transit(?User $user, Model $model, string $workflow, string $target)
     {
@@ -23,44 +24,42 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
     /**
      * Default (built-in) permissions
      * @param string $action
-     * @param string $role
      * @param string|null $workflow
      * @param string|null $state
-     * @return bool|null return null, if there is no default rule
+     * @return array|string|null|void return namespaced(!) roles, allowed to $action
      */
-    public function getPermission($action, $role, $workflow = null, $state = null)
+    public function getDefaults($action, $workflow = null, $state = null)
     {
-        return null;
     }
 
     /**
-     * Return Default (built-in) permissions for model+user
-     * @param string $action
-     * @param User|null $user
-     * @param Model|Workflow|null $model
-     * @return bool|null
+     * @inheritDoc
+     * @param Model|Workflow $model
      */
-    protected function getPermissions($action, ?User $user, Model $model = null)
+    protected function authorize($action, ?User $user, Model $model = null)
     {
-        $default = null;
-        $roles = $this->getRoles($user, $model);
+        $roles = $this->getUserRoles($user, $model);
 
-        foreach ($roles as $role) {
-            if ($model) {
-                // Iterate each workflow
-                foreach ($model->getWorkflowListing() as $workflow) {
-                    if (!is_null($rule = $this->getPermission($action, $role, $workflow->getAttributeName(), $workflow->getState()))) {
-                        $default = $rule ?: ($default ?: $rule);
-                    }
+        if ($model && ($workflowListing = $this->getWorkflowListing($model))) {
+            // Iterate each workflow
+            foreach ($workflowListing as $workflow) {
+
+                // Check default permissions
+                $permittedRoles = $this->getDefaults($action, $workflow->getAttributeName(), $workflow->getState());
+                if (array_intersect($roles, $permittedRoles)) {
+                    return true;
                 }
-            } else {
-                if (!is_null($rule = $this->getPermission($action, $role))) {
-                    $default = $rule ?: ($default ?: $rule);
+
+                // Check permissions from database
+                $permittedRoles = $this->getPermissions($this->getSignature($action, $model));
+                if (array_intersect($roles, $permittedRoles)) {
+                    return true;
                 }
             }
+            return false;
+        } else {
+            return parent::authorize($action, $user, $model);
         }
-
-        return $default;
     }
 
     protected function applyScope($action, ?User $user)
@@ -104,10 +103,11 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
 
         $model::addGlobalScope($globalScopeName, function (Builder $query) use ($workflowListing, $action, $user, $keyName) {
             $scoped = false;
+            $roles = $this->getUserRoles($user);
             foreach ($workflowListing as $workflow) {
                 foreach ($workflow->getStates() as $state) {
                     $signature = "{$this->getNamespace()}({$workflow->getAttributeName()}:{$state}):{$action}";
-                    if ($this->getPermissions($signature, $this->getRoles($user))->count()) {
+                    if (array_intersect($roles, $this->getPermissions($signature))) {
                         // user permitted to $action this workflow:state in model
                         // add it to the global scope
                         $query->orWhere($workflow->getAttributeName(), $state);
@@ -178,24 +178,20 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
         }
 
         $default = null;
-        $roles = $this->getRoles($user, $model);
+        $source = $workflow->getState();
+        $roles = $this->getUserRoles($user, $model);
 
-        foreach ($roles as $role) {
-            if (!is_null($rule = $workflow->getPermission($target, $role))) {
-                $default = $rule ?: ($default ?: $rule);
-            }
+        if (array_intersect($roles, $workflow->getDefaults($source, $target))) {
+            return true;
         }
 
-        if (is_null($default)) {
-            // There is no default rule
-            $signature = "{$this->getNamespace()}({$workflow->getAttributeName()}:{$workflow->getState()}):transit({$target})";
-            $permissions = $this->getPermissions($signature, $roles);
-
-            // If we have at least one permission, then User allowed to action
-            return (boolean)$permissions->count();
-        } else {
-            return $default;
+        // There is no default rule
+        $signature = "{$this->getNamespace()}({$workflow->getAttributeName()}:{$source}):transit({$target})";
+        if (array_intersect($roles, $this->getPermissions($signature))) {
+            return true;
         }
+
+        return false;
     }
 
     /**
@@ -221,23 +217,18 @@ abstract class WorkflowPolicy extends \Trunow\Rpac\Policies\RpacPolicy
     }
 
     /**
-     * Return permissions for signatures and roles
+     * Get roles for signature
      * @param array|string $signature
-     * @param array|string $roles
-     * @return Collection|Permission[]
+     * @return array
      */
-    protected function readPermissions($signature, $roles)
+    protected function getPermissions($signature)
     {
         // Take permissions with signature and user role
         $permissions = Permission::cached()->filter(
-            function (Permission $perm) use ($signature, $roles) {
-                return (
-                    in_array($perm->signature, (array)$signature) &&
-                    in_array($perm->role, (array)$roles)
-                );
+            function (Permission $perm) use ($signature) {
+                return (in_array($perm->signature, (array)$signature));
             }
         );
-//        dump($permissions->toArray());
-        return $permissions;
+        return $permissions->pluck('role')->toArray();
     }
 }
