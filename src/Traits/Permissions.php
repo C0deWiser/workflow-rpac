@@ -6,11 +6,21 @@ namespace Codewiser\Workflow\Rpac\Traits;
 use Codewiser\Workflow\Rpac\WorkflowBlueprint;
 use Codewiser\Workflow\Rpac\WorkflowPolicy;
 use \Illuminate\Contracts\Auth\Authenticatable as User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * @inheritDoc
+ * @property-read array $authorizedTransitions
+ */
 trait Permissions
 {
     use \Codewiser\Rpac\Traits\Permissions;
+
+    public function getAuthorizedTransitionsAttribute()
+    {
+        return $this->getAuthorizedTransitions(Auth::user());
+    }
 
     /**
      * Get list of transitions allowed to given User
