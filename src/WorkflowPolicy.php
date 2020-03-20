@@ -4,7 +4,6 @@ namespace Codewiser\Workflow\Rpac;
 
 use Codewiser\Rpac\Policies\RpacPolicy;
 use Codewiser\Workflow\Rpac\Traits\Workflow;
-use Codewiser\Workflow\Transition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -107,13 +106,13 @@ abstract class WorkflowPolicy extends RpacPolicy
             $roles = $this->getUserRoles($user);
             foreach ($workflowListing as $workflow) {
                 foreach ($workflow->getStates() as $state) {
-                    $signature = "{$this->getNamespace()}({$workflow->getAttributeName()}:{$state}):{$action}";
+                    $signature = "{$this->getPolicyNamespace()}({$workflow->getAttributeName()}:{$state}):{$action}";
                     if (array_intersect($roles, $this->getPermissions($signature))) {
                         // user permitted to $action this workflow:state in model
                         // add it to the global scope
                         $query->orWhere($workflow->getAttributeName(), $state);
                         $scoped = true;
-                    } elseif ($user && ($relationships = $this->getRelationshipsForSignature($signature))) {
+                    } elseif ($user && ($relationships = $this->getModelRolesForSignature($signature))) {
                         // get user Relationships permitted to $action
                         // if any, then add relationship scope to global scope
                         foreach ($relationships as $relationship) {
@@ -187,7 +186,7 @@ abstract class WorkflowPolicy extends RpacPolicy
         }
 
         // There is no default rule
-        $signature = "{$this->getNamespace()}({$workflow->getAttributeName()}:{$source}):transit({$target})";
+        $signature = "{$this->getPolicyNamespace()}({$workflow->getAttributeName()}:{$source}):transit({$target})";
         if (array_intersect($roles, $this->getPermissions($signature))) {
             return true;
         }
@@ -209,7 +208,7 @@ abstract class WorkflowPolicy extends RpacPolicy
             // It is enough for user to have access to model through any workflow
             // So, we return few signatures any of which gives access
             foreach ($workflowListing as $workflow) {
-                $signatures[] = "{$this->getNamespace()}({$workflow->getAttributeName()}:{$workflow->getState()}):{$action}";
+                $signatures[] = "{$this->getPolicyNamespace()}({$workflow->getAttributeName()}:{$workflow->getState()}):{$action}";
             }
         } else {
             $signatures[] = parent::getSignature($action);
