@@ -1,6 +1,6 @@
 {
     "name": "codewiser/wrpac",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Model Workflow with Role-Permissions Access Control Laravel package",
     "keywords": ["workflow", "permissions", "laravel", "illuminate"],
     "license": "MIT",
@@ -12,8 +12,8 @@
     ],
     "require": {
         "laravel/framework": ">=5.8",
-        "codewiser/workflow": "^1.0",
-        "codewiser/rpac": "^1.0",
+        "codewiser/workflow": "dev-master",
+        "codewiser/rpac": "dev-master",
         "ext-json": "*"
     },
     "autoload": {
