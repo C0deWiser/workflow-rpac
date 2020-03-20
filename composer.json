@@ -1,6 +1,6 @@
 {
-    "name": "codewiser/workflow-rpac",
-    "description": "Model Workflow with role-permissions Laravel package",
+    "name": "codewiser/wrpac",
+    "description": "Model Workflow with Role-Permissions Access Control Laravel package",
     "keywords": ["workflow", "permissions", "laravel", "illuminate"],
     "license": "MIT",
     "authors": [
