@@ -45,8 +45,8 @@ abstract class WorkflowPolicy extends RpacPolicy
             foreach ($workflowListing as $workflow) {
 
                 // Check default permissions
-                $permittedRoles = $this->getDefaults($action, $workflow->getAttributeName(), $workflow->getState());
-                if (array_intersect($roles, $permittedRoles)) {
+                $permittedRoles = (array)$this->getDefaults($action, $workflow->getAttributeName(), $workflow->getState());
+                if (in_array('*', $permittedRoles) || array_intersect($roles, (array)$permittedRoles)) {
                     return true;
                 }
 
@@ -180,8 +180,9 @@ abstract class WorkflowPolicy extends RpacPolicy
         $default = null;
         $source = $workflow->getState();
         $roles = $this->getUserRoles($user, $model);
+        $defaults = (array)$workflow->getDefaults($source, $target);
 
-        if (array_intersect($roles, (array)$workflow->getDefaults($source, $target))) {
+        if (in_array('*', $defaults) || array_intersect($roles, $defaults)) {
             return true;
         }
 
