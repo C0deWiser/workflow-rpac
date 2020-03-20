@@ -5,10 +5,10 @@ namespace Codewiser\Workflow\Rpac;
 use Codewiser\Rpac\Policies\RpacPolicy;
 use Codewiser\Workflow\Rpac\Traits\Workflow;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Auth\User;
+use \Illuminate\Contracts\Auth\Authenticatable as User;
 use Codewiser\Rpac\Permission;
+use Illuminate\Support\Collection;
 
 /**
  * This policy may authorise user to perform Transitions. Also, it gives respect to models states.
@@ -138,7 +138,7 @@ abstract class WorkflowPolicy extends RpacPolicy
     /**
      * Model's workflow
      * @param Model|Workflow $model
-     * @return \Illuminate\Support\Collection|WorkflowBlueprint[]
+     * @return Collection|WorkflowBlueprint[]
      */
     protected function getWorkflowListing(Model $model = null)
     {

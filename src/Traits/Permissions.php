@@ -5,7 +5,7 @@ namespace Codewiser\Workflow\Rpac\Traits;
 
 use Codewiser\Workflow\Rpac\WorkflowBlueprint;
 use Codewiser\Workflow\Rpac\WorkflowPolicy;
-use Illuminate\Foundation\Auth\User;
+use \Illuminate\Contracts\Auth\Authenticatable as User;
 use Illuminate\Support\Facades\Gate;
 
 trait Permissions
