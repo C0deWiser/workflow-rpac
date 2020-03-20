@@ -182,7 +182,7 @@ abstract class WorkflowPolicy extends RpacPolicy
         $source = $workflow->getState();
         $roles = $this->getUserRoles($user, $model);
 
-        if (array_intersect($roles, $workflow->getDefaults($source, $target))) {
+        if (array_intersect($roles, (array)$workflow->getDefaults($source, $target))) {
             return true;
         }
 
