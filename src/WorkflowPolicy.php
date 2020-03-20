@@ -240,7 +240,7 @@ abstract class WorkflowPolicy extends RpacPolicy
      *
      * @param User|null $user
      * @param Model|Workflow $model
-     * @return Collection
+     * @return array
      */
     public function getTransitions(?User $user, Model $model)
     {
@@ -256,6 +256,6 @@ abstract class WorkflowPolicy extends RpacPolicy
             }
         }
 
-        return collect($transitions);
+        return $transitions;
     }
 }
