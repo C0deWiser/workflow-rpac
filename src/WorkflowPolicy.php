@@ -251,7 +251,7 @@ abstract class WorkflowPolicy extends RpacPolicy
             $transitions[$w] = [];
             foreach ($workflow->getRelevantTransitions() as $transition) {
                 if ($this->authorizeTransition($user, $model, $w, $transition->getTarget())) {
-                    $transitions[$w] = $transition->toArray();
+                    $transitions[$w][] = $transition->toArray();
                 }
             }
         }
