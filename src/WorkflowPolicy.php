@@ -4,6 +4,7 @@ namespace Codewiser\Workflow\Rpac;
 
 use Codewiser\Rpac\Policies\RpacPolicy;
 use Codewiser\Workflow\Rpac\Traits\Workflow;
+use Codewiser\Workflow\Transition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -230,5 +231,31 @@ abstract class WorkflowPolicy extends RpacPolicy
             }
         );
         return $permissions->pluck('role')->toArray();
+    }
+
+    /**
+     * Get listing of transitions, available for given User
+     *
+     * [workflow_attr => [transition_1, transition_2]]
+     *
+     * @param User|null $user
+     * @param Model|Workflow $model
+     * @return Collection
+     */
+    public function getTransitions(?User $user, Model $model)
+    {
+        $transitions = [];
+
+        foreach ($model->getWorkflowListing() as $workflow) {
+            $w = $workflow->getAttributeName();
+            $transitions[$w] = [];
+            foreach ($workflow->getRelevantTransitions() as $transition) {
+                if ($this->authorizeTransition($user, $model, $w, $transition->getTarget())) {
+                    $transitions[$w] = $transition->toArray();
+                }
+            }
+        }
+
+        return collect($transitions);
     }
 }

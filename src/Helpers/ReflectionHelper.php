@@ -86,13 +86,14 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
      * @param string $role
      * @param string|null $workflow
      * @param string|null $state
-     * @return bool|null
+     * @return bool
      */
     public function getBuiltInPermission($policy, $action, $role, $workflow = null, $state = null)
     {
         /** @var WorkflowPolicy $policy */
         $policy = new $policy();
-        return in_array($role, $policy->getDefaults($action, $workflow, $state));
+        $defaults = $policy->getDefaults($action, $workflow, $state);
+        return $defaults == '*' || in_array($role, (array)$defaults);
     }
 
     /**
@@ -101,7 +102,7 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
      * @param string $role
      * @param string $workflow
      * @param array $transition
-     * @return bool|null
+     * @return bool|void
      */
     public function getTransitionBuiltInPermission($policy, $role, $workflow, $transition)
     {
@@ -109,9 +110,8 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
 
         if (method_exists($model, 'workflow')) {
             $workflow = $model->workflow($workflow);
-            return in_array($role, $workflow->getDefaults($transition[0], $transition[1]));
-        } else {
-            return null;
+            $defaults = $workflow->getDefaults($transition[0], $transition[1]);
+            return $defaults == '*' || in_array($role, (array)$defaults);
         }
     }
 }
