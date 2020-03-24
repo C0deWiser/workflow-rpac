@@ -2,33 +2,33 @@
 namespace Codewiser\Workflow\Rpac\Helpers;
 
 use Codewiser\Workflow\Rpac\Traits\Workflow;
-use Codewiser\Workflow\Rpac\WorkflowPolicy;
+use Codewiser\Workflow\Rpac\WrpacPolicy;
 use Illuminate\Database\Eloquent\Model;
 
-class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
+class WrpacHelper extends \Codewiser\Rpac\Helpers\RpacHelper
 {
     /**
-     * @param $policy
+     * @var WrpacPolicy
+     */
+    protected $policy;
+    /**
      * @return Model|Workflow
      */
-    protected function getModel($policy)
+    protected function getModel()
     {
-        /** @var WorkflowPolicy $policy */
-        $policy = new $policy();
-        $className = $policy->model();
+        $className = $this->model;
         /** @var Model|Workflow $model */
         return new $className();
     }
 
     /**
      * Get workflow listing of given policy (means model)
-     * @param string $policy
      * @return array|string[]
      * @example [editorial_workflow, ...]
      */
-    public function getFlows($policy)
+    public function getFlows()
     {
-        $model = $this->getModel($policy);
+        $model = $this->getModel();
 
         $flows = [];
 
@@ -43,14 +43,13 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
 
     /**
      * Get list of states of given policy (model) workflow
-     * @param string $policy
      * @param string $workflow
      * @return array|string[]
      * @example [new, view, review, ...]
      */
-    public function getStates($policy, $workflow)
+    public function getStates($workflow)
     {
-        $model = $this->getModel($policy);
+        $model = $this->getModel();
 
         if (method_exists($model, 'workflow')) {
             $workflow = $model->workflow($workflow);
@@ -62,14 +61,13 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
 
     /**
      * Get list of transitions of given policy (model) workflow
-     * @param string $policy
      * @param string $workflow
      * @return array|array[]
      * @example [[source, target], ...]
      */
-    public function getTransitions($policy, $workflow)
+    public function getTransitions($workflow)
     {
-        $model = $this->getModel($policy);
+        $model = $this->getModel();
 
         if (method_exists($model, 'workflow')) {
             $workflow = $model->workflow($workflow);
@@ -88,11 +86,9 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
      * @param string|null $state
      * @return bool
      */
-    public function getBuiltInPermission($policy, $action, $role, $workflow = null, $state = null)
+    public function getBuiltInPermission($action, $role, $workflow = null, $state = null)
     {
-        /** @var WorkflowPolicy $policy */
-        $policy = new $policy();
-        $defaults = $policy->getDefaults($action, $workflow, $state);
+        $defaults = $this->policy->getDefaults($action, $workflow, $state);
         return $defaults == '*' || in_array($role, (array)$defaults);
     }
 
@@ -106,7 +102,7 @@ class ReflectionHelper extends \Codewiser\Rpac\Helpers\ReflectionHelper
      */
     public function getTransitionBuiltInPermission($policy, $role, $workflow, $transition)
     {
-        $model = $this->getModel($policy);
+        $model = $this->getModel();
 
         if (method_exists($model, 'workflow')) {
             $workflow = $model->workflow($workflow);
