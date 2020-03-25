@@ -13,7 +13,7 @@
     "require": {
         "laravel/framework": ">=5.8",
         "codewiser/workflow": "^1.0",
-        "codewiser/rpac": "1.1.2",
+        "codewiser/rpac": "^1.1.2",
         "ext-json": "*"
     },
     "autoload": {
