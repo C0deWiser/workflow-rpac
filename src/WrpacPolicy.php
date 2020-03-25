@@ -4,11 +4,9 @@ namespace Codewiser\Workflow\Rpac;
 
 use Codewiser\Rpac\Policies\RpacPolicy;
 use Codewiser\Workflow\Rpac\Traits\Workflow;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use \Illuminate\Contracts\Auth\Authenticatable as User;
 use Codewiser\Rpac\Permission;
-use Illuminate\Support\Collection;
 
 /**
  * This policy may authorise user to perform Transitions. Also, it gives respect to models states.
@@ -105,7 +103,8 @@ abstract class WrpacPolicy extends RpacPolicy
     {
         if ($workflow && $currentState) {
             if ($targetState) {
-                // Model(workflowName:state):transit(newState)
+                // This is action=transit
+                // Model(workflowName:state):action(newState)
                 return "{$this->getNamespace()}({$workflow}:{$currentState}):{$action}({$targetState})";
             } else {
                 // Model(workflowName:state):action
@@ -127,7 +126,7 @@ abstract class WrpacPolicy extends RpacPolicy
      */
     public function getPermissions($action, WorkflowBlueprint $workflow = null, $currentState = null, $targetState = null)
     {
-        $signature = $this->getSignature($action, $workflow ? (string)$workflow : null, $currentState, $targetState );
+        $signature = $this->getSignature($action, $workflow ? $workflow->getAttributeName() : null, $currentState, $targetState );
 
         // Take permissions with signature and user role
         $permissions = Permission::cached()->filter(
@@ -139,7 +138,7 @@ abstract class WrpacPolicy extends RpacPolicy
         if ($targetState) {
             $defaults = $workflow->getDefaults($currentState, $targetState);
         } else {
-            $defaults = $this->getDefaults($action, $workflow ? (string)$workflow : null, $currentState);
+            $defaults = $this->getDefaults($action, $workflow ? $workflow->getAttributeName() : null, $currentState);
         }
 
         return array_merge(

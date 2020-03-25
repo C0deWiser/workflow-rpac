@@ -3,17 +3,15 @@
 
 namespace Codewiser\Workflow\Rpac\Traits;
 
-use Codewiser\Rpac\Helpers\RpacHelper;
+use Codewiser\Rpac\Role;
 use Codewiser\Rpac\Traits\Roles;
 use Codewiser\Rpac\Traits\RPAC;
-use Codewiser\Workflow\Rpac\Helpers\WrpacHelper;
 use Codewiser\Workflow\Rpac\WorkflowBlueprint;
 use Codewiser\Workflow\Rpac\WrpacPolicy;
 use \Illuminate\Contracts\Auth\Authenticatable as User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 
 /**
  * @inheritDoc
@@ -58,8 +56,8 @@ trait WRPAC
                 // Ask for exact workflow transitions
                 /** @var WorkflowBlueprint $workflow */
                 $workflow = $this->workflow($what);
-                if (isset($transitions[(string)$workflow])) {
-                    return $transitions[(string)$workflow];
+                if (isset($transitions[$workflow->getAttributeName()])) {
+                    return $transitions[$workflow->getAttributeName()];
                 }
             } else {
                 // Ask for the first workflow transitions
@@ -75,44 +73,42 @@ trait WRPAC
     /**
      * Get non-model roles, allowed to perform given action
      * @param string $action
-     * @param string $workflow
+     * @param WorkflowBlueprint $workflow
      * @param string $state
      * @return array of roles
      */
-    protected function getAuthorizedNonModelRoles($action, $workflow = null, $state = null)
+    protected function getAuthorizedNonModelRoles($action, WorkflowBlueprint $workflow, $state)
     {
         // Keep only non-model roles
-        $roles = array_intersect(
-            static::getPolicy()->getPermissions($action, $this->workflow($workflow), $state),
-            array_merge(['*'], RpacHelper::getNonModelRoles())
-        );
+        $roles = static::getPolicy()->getPermissions($action, $workflow, $state);
 
-        return $roles;
+        if (in_array('*', $roles)) {
+            // All non-model roles allowed
+            return Role::allSlugs();
+        } else {
+            // Some non-model roles allowed
+            return array_intersect($roles, Role::allSlugs());
+        }
     }
 
     /**
      * Get model roles without namespace(!), allowed to perform given action
      * @param string $action
-     * @param string $workflow
+     * @param WorkflowBlueprint $workflow
      * @param string $state
      * @return array of roles
      */
-    protected function getAuthorizedModelRoles($action, $workflow, $state)
+    protected function getAuthorizedModelRoles($action, WorkflowBlueprint $workflow, $state)
     {
-        // Clean out namespaces
         // Keep only model roles
-        $relationships = array_map(function ($n) {
-            $n = explode('\\', $n);
-            $n = array_pop($n);
-            return Str::snake($n);
-        }, static::getPolicy()->getPermissions($action, $this->workflow($workflow), $state));
+        $relationships = static::getPolicy()->getPermissions($action, $workflow, $state);
 
         if (in_array('*', $relationships)) {
             // All model roles allowed
-            return $this->relationships;
+            return $this->getRelationshipListing();
         } else {
             // Some model roles allowed
-            return array_intersect($relationships, $this->relationships);
+            return array_intersect($relationships, $this->getRelationshipListing());
         }
     }
 
@@ -150,11 +146,7 @@ trait WRPAC
          *
          */
 
-        $userRoles = $user ? array_merge(
-            ['any'], $user->roles->pluck('slug')->toArray()
-        ) : ['guest'];
-
-//        dump($userRoles);
+        $userRoles = $user ? $user->getRoles() : ['guest'];
 
         $query->where(function (Builder $query) use ($action, $user, $userRoles) {
             $scoped = false;
@@ -162,12 +154,9 @@ trait WRPAC
             foreach ($this->getWorkflowListing() as $workflow) {
                 foreach ($workflow->getStates() as $state) {
 //                    dump(['wf' => [$workflow->getAttributeName(), $state]]);
-                    $userAuthorizedRoles = $this->getAuthorizedNonModelRoles($action, $workflow->getAttributeName(), $state);
+                    $userAuthorizedRoles = $this->getAuthorizedNonModelRoles($action, $workflow, $state);
 //                    dump(['AuthorizedNonModelRoles' => $userAuthorizedRoles]);
-                    $fullAccess =
-                        in_array('*', $userAuthorizedRoles)
-                        ||
-                        array_intersect($userRoles, $userAuthorizedRoles);
+                    $fullAccess = array_intersect($userRoles, $userAuthorizedRoles);
 
                     if ($fullAccess) {
                         // Add to scope all records with workflow=state
@@ -179,7 +168,7 @@ trait WRPAC
                     } elseif ($user) {
                         // Add to scope every chunk, scoped by relationship
                         // ex: workflow_1_attr='correct' and owner_id={user_id}
-                        $relationships = $this->getAuthorizedModelRoles($action, $workflow->getAttributeName(), $state);
+                        $relationships = $this->getAuthorizedModelRoles($action, $workflow, $state);
 //                        dump(['AuthorizedModelRoles' => $relationships]);
                         foreach ($relationships as $relationship) {
                             $query->orWhere(function (Builder $query) use ($workflow, $state, $relationship, $user) {
@@ -196,7 +185,7 @@ trait WRPAC
             if (!$scoped) {
                 // User is anon or there are no authorized
                 // Apply empty scope to prevent user access to unauthorized models
-                $query->where($this->getKeyName(), 0);
+                $query->whereKey(0);
             }
         });
 
