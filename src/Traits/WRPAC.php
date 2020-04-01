@@ -105,10 +105,10 @@ trait WRPAC
 
         if (in_array('*', $relationships)) {
             // All model roles allowed
-            return $this->getRelationshipListing();
+            return self::getRelationshipListing();
         } else {
             // Some model roles allowed
-            return array_intersect($relationships, $this->getRelationshipListing());
+            return array_intersect($relationships, self::getRelationshipListing());
         }
     }
 
@@ -161,7 +161,7 @@ trait WRPAC
                     if ($fullAccess) {
                         // Add to scope all records with workflow=state
                         // ex: workflow_1_attr='new'
-                        $query->orWhere(function(Builder $query) use ($workflow, $state) {
+                        $query->orWhere(function (Builder $query) use ($workflow, $state) {
                             $query->workflow($state, $workflow);
                         });
                         $scoped = true;
