@@ -151,7 +151,9 @@ trait WRPAC
         $query->where(function (Builder $query) use ($action, $user, $userRoles) {
             $scoped = false;
 
+
             foreach ($this->getWorkflowListing() as $workflow) {
+                $whereIn = [];
                 foreach ($workflow->getStates() as $state) {
 //                    dump(['wf' => [$workflow->getAttributeName(), $state]]);
                     $userAuthorizedRoles = $this->getAuthorizedNonModelRoles($action, $workflow, $state);
@@ -159,12 +161,7 @@ trait WRPAC
                     $fullAccess = array_intersect($userRoles, $userAuthorizedRoles);
 
                     if ($fullAccess) {
-                        // Add to scope all records with workflow=state
-                        // ex: workflow_1_attr='new'
-                        $query->orWhere(function (Builder $query) use ($workflow, $state) {
-                            $query->workflow($state, $workflow);
-                        });
-                        $scoped = true;
+                        $whereIn[] = $state;
                     } elseif ($user) {
                         // Add to scope every chunk, scoped by relationship
                         // ex: workflow_1_attr='correct' and owner_id={user_id}
@@ -179,6 +176,12 @@ trait WRPAC
                             $scoped = true;
                         }
                     }
+                }
+                if ($whereIn) {
+                    // Add to scope all records with workflow in $whereIn
+                    // ex: workflow_1_attr in ('new',...)
+                    $query->orWhereIn($workflow->getAttributeName(), $whereIn);
+                    $scoped = true;
                 }
             }
 
