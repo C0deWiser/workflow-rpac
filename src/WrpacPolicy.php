@@ -26,9 +26,7 @@ abstract class WrpacPolicy extends RpacPolicy
      * @param string|null $state
      * @return array|string|null|void return namespaced(!) roles, allowed to $action
      */
-    public function getDefaults($action, $workflow = null, $state = null)
-    {
-    }
+    abstract public function permissions($action, $workflow = null, $state = null);
 
     /**
      * @inheritDoc
@@ -119,12 +117,12 @@ abstract class WrpacPolicy extends RpacPolicy
     /**
      * Get roles for signature
      * @param string $action
-     * @param WorkflowBlueprint $workflow if model has workflow
+     * @param StateMachineEngine $workflow if model has workflow
      * @param string $currentState current state
      * @param string $targetState target state (for transition)
      * @return array
      */
-    public function getPermissions($action, WorkflowBlueprint $workflow = null, $currentState = null, $targetState = null)
+    public function getPermissions($action, StateMachineEngine $workflow = null, $currentState = null, $targetState = null)
     {
         $signature = $this->getSignature($action, $workflow ? $workflow->getAttributeName() : null, $currentState, $targetState );
 
@@ -136,9 +134,9 @@ abstract class WrpacPolicy extends RpacPolicy
         );
 
         if ($targetState) {
-            $defaults = $workflow->getDefaults($currentState, $targetState);
+            $defaults = $workflow->getBlueprint()->permissions($currentState, $targetState);
         } else {
-            $defaults = $this->getDefaults($action, $workflow ? $workflow->getAttributeName() : null, $currentState);
+            $defaults = $this->permissions($action, $workflow ? $workflow->getAttributeName() : null, $currentState);
         }
 
         return array_merge(

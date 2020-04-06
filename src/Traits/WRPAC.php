@@ -6,6 +6,7 @@ namespace Codewiser\Workflow\Rpac\Traits;
 use Codewiser\Rpac\Role;
 use Codewiser\Rpac\Traits\Roles;
 use Codewiser\Rpac\Traits\RPAC;
+use Codewiser\Workflow\Rpac\StateMachineEngine;
 use Codewiser\Workflow\Rpac\WorkflowBlueprint;
 use Codewiser\Workflow\Rpac\WrpacPolicy;
 use \Illuminate\Contracts\Auth\Authenticatable as User;
@@ -54,7 +55,7 @@ trait WRPAC
 
             if ($what) {
                 // Ask for exact workflow transitions
-                /** @var WorkflowBlueprint $workflow */
+                /** @var StateMachineEngine $workflow */
                 $workflow = $this->workflow($what);
                 if (isset($transitions[$workflow->getAttributeName()])) {
                     return $transitions[$workflow->getAttributeName()];
@@ -73,11 +74,11 @@ trait WRPAC
     /**
      * Get non-model roles, allowed to perform given action
      * @param string $action
-     * @param WorkflowBlueprint $workflow
+     * @param StateMachineEngine $workflow
      * @param string $state
      * @return array of roles
      */
-    protected function getAuthorizedNonModelRoles($action, WorkflowBlueprint $workflow, $state)
+    protected function getAuthorizedNonModelRoles($action, StateMachineEngine $workflow, $state)
     {
         // Keep only non-model roles
         $roles = static::getPolicy()->getPermissions($action, $workflow, $state);
@@ -94,11 +95,11 @@ trait WRPAC
     /**
      * Get model roles without namespace(!), allowed to perform given action
      * @param string $action
-     * @param WorkflowBlueprint $workflow
+     * @param StateMachineEngine $workflow
      * @param string $state
      * @return array of roles
      */
-    protected function getAuthorizedModelRoles($action, WorkflowBlueprint $workflow, $state)
+    protected function getAuthorizedModelRoles($action, StateMachineEngine $workflow, $state)
     {
         // Keep only model roles
         $relationships = static::getPolicy()->getPermissions($action, $workflow, $state);
@@ -119,7 +120,7 @@ trait WRPAC
      * @param User|Roles|null $user
      * @return Builder
      */
-    public function scopeAllowedTo(Builder $query, $action, ?User $user)
+    public function scopeOnlyAllowedTo(Builder $query, $action, ?User $user)
     {
         // without workflow we construct Scope that way
         // we get all positive permissions with Model+Action signature
@@ -170,8 +171,8 @@ trait WRPAC
                         foreach ($relationships as $relationship) {
                             $query->orWhere(function (Builder $query) use ($workflow, $state, $relationship, $user) {
                                 $query
-                                    ->workflow($state, $workflow)
-                                    ->related($relationship, $user);
+                                    ->onlyState($state, $workflow)
+                                    ->onlyRelated($relationship, $user);
                             });
                             $scoped = true;
                         }

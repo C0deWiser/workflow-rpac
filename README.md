@@ -1,4 +1,4 @@
-# Workflow + RPAC
+# Workflow + R.P.A.C. = W.R.P.A.C.
 
 Merge RPAC functionality with Workflow package.
 
@@ -26,10 +26,10 @@ class Controller
     {
         $post = Post::find($id);
     
-        if ($request->has('workflow')) {
+        if ($request->has('state')) {
             $this->authorize(
                 'transit', 
-                [$post, 'workflow', $request->get('workflow')]
+                [$post, 'state', $request->get('state')]
             );
         }
     }
@@ -40,7 +40,7 @@ Also, this policy extends `getDefaults` method.
 
 ```php
 class PostPolicy {
-    public function getDefaults($action, $workflow = null, $state = null)
+    public function defaults($action, $workflow = null, $state = null)
     {
         // On `new` state Author can do anything with his Post
         if ($state = 'new') {
@@ -50,7 +50,6 @@ class PostPolicy {
         if (!$workflow || $action == 'view') {
             return 'admin';
         }
-        // Other rules will be provided by RPAC
     }
 }
 ```
@@ -60,7 +59,7 @@ Package extends `WorkflowBlueprint` with default permissions to perform transiti
 ```php
 class PostWorkflow extends WorkflowBlueprint
 {
-    public function getDefaults($source, $target)
+    public function defaults($source, $target)
     {
         // Admin may perform any transitions
         return 'admin';
@@ -76,7 +75,8 @@ You may collect full list of authorized transitions through Model.
 
 ```php
 $post = Post::find($id);
-$abilities = $post->getAuthorizedTransitions(Auth::user(), 'workflow_attr');
+
+$transitions = $post->getAuthorizedTransitions(Auth::user(), 'workflow_attr');
 
 // If Model has just one Workflow
 $abilities = $post->getAuthorizedTransitions(Auth::user());

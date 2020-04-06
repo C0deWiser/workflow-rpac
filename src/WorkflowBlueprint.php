@@ -13,8 +13,5 @@ abstract class WorkflowBlueprint extends \Codewiser\Workflow\WorkflowBlueprint
      * @param string $target
      * @return array|string|null|void return namespaced(!) roles, allowed to perform transition
      */
-    public function getDefaults($source, $target)
-    {
-
-    }
+    abstract public function permissions($source, $target);
 }

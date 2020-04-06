@@ -1,7 +1,7 @@
 <?php
 namespace Codewiser\Workflow\Rpac\Traits;
 
-use Codewiser\Workflow\Rpac\WorkflowBlueprint;
+use Codewiser\Workflow\Rpac\StateMachineEngine;
 use Illuminate\Support\Collection;
 
 /**
@@ -16,17 +16,21 @@ trait Workflow
     }
 
     /**
-     * @inheritDoc
-     * @return WorkflowBlueprint|null
+     * Get the model workflow
+     * @param string $what attribute name or workflow class (if null, then first Workflow will be returned)
+     * @return StateMachineEngine|null
      */
     public function workflow($what = null)
     {
-        return $this->parentWorkflow($what);
+        if ($workflow = $this->parentWorkflow($what)) {
+            return new StateMachineEngine($workflow->getBlueprint(), $this, $workflow->getAttributeName());
+        }
+        return null;
     }
 
     /**
      * @inheritDoc
-     * @return WorkflowBlueprint[]|Collection
+     * @return StateMachineEngine[]|Collection
      */
     public function getWorkflowListing()
     {
