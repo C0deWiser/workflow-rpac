@@ -36,11 +36,11 @@ class Controller
 }
 ```
 
-Also, this policy extends `getDefaults` method.
+Also, this policy extends `permissions` method.
 
 ```php
 class PostPolicy {
-    public function defaults($action, $workflow = null, $state = null)
+    public function permissions($action, $workflow = null, $state = null)
     {
         // On `new` state Author can do anything with his Post
         if ($state = 'new') {
@@ -59,7 +59,7 @@ Package extends `WorkflowBlueprint` with default permissions to perform transiti
 ```php
 class PostWorkflow extends WorkflowBlueprint
 {
-    public function defaults($source, $target)
+    public function permissions($source, $target)
     {
         // Admin may perform any transitions
         return 'admin';
